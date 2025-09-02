@@ -1,0 +1,42 @@
+name: Deploy to AWS App Runner
+
+on:
+  push:
+    branches:
+      - main  # or master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Log in to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Build, tag, and push image to ECR
+      - name: Build, tag, and push image
+        run: |
+          IMAGE_TAG=latest
+          docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG .
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+
+      # Deploy new image to App Runner
+      - name: Deploy to App Runner
+        run: |
+          aws apprunner update-service \
+            --service-arn ${{ secrets.APP_RUNNER_ARN }} \
+            --source-configuration "ImageRepository={ImageIdentifier=${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest,ImageRepositoryType=ECR},AutoDeploymentsEnabled=true"
