@@ -33,10 +33,4 @@ jobs:
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
 
-      # 5. Deploy to App Runner
-      - name: Deploy to AWS App Runner
-        run: |
-          IMAGE_URI=${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-          aws apprunner update-service \
-            --service-arn ${{ secrets.APP_RUNNER_ARN }} \
-            --source-configuration "ImageRepository={ImageIdentifier=$IMAGE_URI,ImageRepositoryType=ECR},AutoDeploymentsEnabled=true"
+  
